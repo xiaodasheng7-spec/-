@@ -2,18 +2,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, ConstitutionType } from "./types";
 
-// Helper function to perform facial analysis using Gemini
 export const analyzeFace = async (imageBase64: string): Promise<AIAnalysisResult> => {
-  // Always initialize with named parameter and direct process.env.API_KEY
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // 直接使用由 Vite 注入的 process.env.API_KEY
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("API KEY 未配置，请在 Vercel 环境变量中设置 API_KEY");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   const prompt = `你是一位专业的中医体质辨识专家。请通过这张面部照片，分析用户的皮肤光泽、面色（偏黄、白、红、晦暗）、眼神神采、口唇颜色、是否有油腻感或痘痘等特征。
 根据这些视觉特征，从九种中医体质（平和质、气虚质、阳虚质、阴虚质、痰湿质、湿热质、血瘀质、气郁质、特禀质）中选出最匹配的一种。
-请给出分析原因和识别到的关键面部特征。`;
+请给出分析原因和识别到的关键面部特征。请直接返回 JSON 格式结果。`;
 
   try {
     const response = await ai.models.generateContent({
-      // Using gemini-3-pro-preview for complex reasoning task (TCM constitution identification)
       model: "gemini-3-pro-preview",
       contents: {
         parts: [
@@ -49,11 +53,11 @@ export const analyzeFace = async (imageBase64: string): Promise<AIAnalysisResult
       }
     });
 
-    // Extract text output using .text property
-    const jsonStr = response.text.trim();
-    const result = JSON.parse(jsonStr);
+    const text = response.text;
+    if (!text) throw new Error("AI 未返回有效数据");
     
-    // Standardize the constitution name mapping in case model adds suffix
+    const result = JSON.parse(text);
+    
     const validTypes = Object.values(ConstitutionType);
     const matchedType = validTypes.find(t => result.constitution.includes(t)) || ConstitutionType.PEACEFUL;
     
@@ -63,6 +67,6 @@ export const analyzeFace = async (imageBase64: string): Promise<AIAnalysisResult
     };
   } catch (error) {
     console.error("AI Analysis failed:", error);
-    throw new Error("面部识别失败，请确保光线充足并露出全脸。");
+    throw new Error("面部识别分析失败，请稍后重试。");
   }
 };
