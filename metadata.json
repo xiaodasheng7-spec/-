@@ -1,0 +1,7 @@
+{
+  "name": "中医体质智能辨识",
+  "description": "基于AI面部识别与中华中医药学会标准的体质自测系统，提供个性化运动与饮食指导。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
